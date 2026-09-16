@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CasaClara — Organização da Casa para Mentes PHDA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ============ ONBOARDING ============ -->
+<div id="onboarding" class="onboarding">
+  <div class="onb-card">
+    <div class="onb-logo">⌂</div>
+    <h1>CasaClara</h1>
+    <p class="onb-sub">Uma casa organizada, uma decisão de cada vez.<br>Feita para mentes PHDA: simples, visual e sem culpa.</p>
+    <div class="onb-pillars">
+      <div class="pillar"><span>⚡</span><strong>Vitórias rápidas</strong><small>Tarefas de 5 a 15 min</small></div>
+      <div class="pillar"><span>🎯</span><strong>Uma coisa de cada vez</strong><small>Zero sobrecarga</small></div>
+      <div class="pillar"><span>🌿</span><strong>Sem culpa</strong><small>Recomeçar é normal</small></div>
+    </div>
+    <button class="btn-primary btn-big" onclick="finishOnboarding()">Começar →</button>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" class="app hidden">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">⌂</div>
+      <div><strong>CasaClara</strong><small>casa · calma · clara</small></div>
+    </div>
+    <nav class="nav">
+      <button class="nav-btn active" data-view="dashboard"><span class="nav-ico">◉</span> Hoje</button>
+      <button class="nav-btn" data-view="zones"><span class="nav-ico">▦</span> Zonas da Casa</button>
+      <button class="nav-btn" data-view="tasks"><span class="nav-ico">✓</span> Tarefas</button>
+      <button class="nav-btn" data-view="focus"><span class="nav-ico">◷</span> Modo Foco</button>
+      <button class="nav-btn" data-view="declutter"><span class="nav-ico">⇄</span> Desapego</button>
+      <button class="nav-btn" data-view="cheer"><span class="nav-ico">🫂</span> Dias Dark</button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="settings-card">
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
+          <span id="themeIcon">🌙</span><span id="themeLabel">Modo escuro</span>
+        </button>
+        <div class="notif-row">
+          <strong>🔔 Lembretes</strong>
+          <button class="btn-ghost btn-sm" id="notifBtn" onclick="askNotificationPermission()">Ativar</button>
+        </div>
+        <div class="notif-times hidden" id="notifTimes">
+          <label>Manhã <input type="time" id="notifMorning" value="08:30" onchange="saveNotifTimes()"></label>
+          <label>Noite <input type="time" id="notifEvening" value="21:00" onchange="saveNotifTimes()"></label>
+          <button class="btn-ghost btn-sm" onclick="testNotification()">Testar</button>
+        </div>
+        <small class="hint" id="notifHint">Com a app aberta no browser.</small>
+      </div>
+      <div class="streak-box">
+        <span class="streak-flame">🔥</span>
+        <div><strong id="streakDays">0</strong><small>dias seguidos</small></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- ===== DASHBOARD ===== -->
+    <section id="view-dashboard" class="view active">
+      <header class="view-header">
+        <div>
+          <p class="greeting" id="greeting">Bom dia</p>
+          <h2 id="dashDate">Hoje</h2>
+        </div>
+        <div class="score-ring" title="Progresso de hoje">
+          <svg viewBox="0 0 80 80"><circle class="ring-bg" cx="40" cy="40" r="34"/><circle class="ring-fg" id="ringFg" cx="40" cy="40" r="34"/></svg>
+          <span id="ringPct">0%</span>
+        </div>
+      </header>
+
+      <!-- Zone of the day -->
+      <div class="card zone-today" id="zoneTodayCard"></div>
+
+      <!-- Quick wins -->
+      <div class="section-head">
+        <h3>⚡ Vitórias Rápidas</h3>
+        <small>Começa pela mais pequena. Já está.</small>
+      </div>
+      <div class="quick-wins" id="quickWins"></div>
+
+      <!-- One thing -->
+      <div class="card one-thing">
+        <div class="one-thing-label">🎯 A MINHA ÚNICA COISA DE HOJE</div>
+        <div class="one-thing-body" id="oneThingBody"></div>
+      </div>
+
+      <!-- Routines -->
+      <div class="section-head"><h3>☀️ Rotinas</h3><small>Âncoras para o teu dia</small></div>
+      <div class="routines" id="routines"></div>
+    </section>
+
+    <!-- ===== ZONES ===== -->
+    <section id="view-zones" class="view">
+      <header class="view-header">
+        <div><p class="greeting">A tua casa, em zonas</p><h2>Zonas da Casa</h2></div>
+      </header>
+      <p class="hint">Cada zona tem micro-tarefas de máx. 15 min. Toca numa zona para expandir. A zona destacada é a <strong>zona da semana</strong> — só precisas dela esta semana.</p>
+      <div class="zones-grid" id="zonesGrid"></div>
+    </section>
+
+    <!-- ===== TASKS ===== -->
+    <section id="view-tasks" class="view">
+      <header class="view-header">
+        <div><p class="greeting">Tudo num só sítio</p><h2>Tarefas</h2></div>
+      </header>
+
+      <form class="add-task" id="addTaskForm">
+        <input type="text" id="newTaskName" placeholder="Adicionar tarefa… (ex.: dobrar a roupa)" autocomplete="off">
+        <select id="newTaskZone"></select>
+        <select id="newTaskTime">
+          <option value="5">5 min</option>
+          <option value="10">10 min</option>
+          <option value="15" selected>15 min</option>
+          <option value="30">30 min</option>
+        </select>
+        <button type="submit" class="btn-primary">+ Add</button>
+      </form>
+
+      <div class="filters" id="taskFilters">
+        <button class="chip active" data-filter="all">Todas</button>
+        <button class="chip" data-filter="today">Para hoje</button>
+        <button class="chip" data-filter="quick">≤ 15 min</button>
+        <button class="chip" data-filter="done">Concluídas</button>
+      </div>
+      <div class="task-list" id="taskList"></div>
+    </section>
+
+    <!-- ===== FOCUS ===== -->
+    <section id="view-focus" class="view">
+      <header class="view-header">
+        <div><p class="greeting">Um bloco de cada vez</p><h2>Modo Foco</h2></div>
+      </header>
+      <div class="focus-wrap">
+        <div class="focus-task-pick">
+          <label>Estou a focar em:</label>
+          <select id="focusTask"></select>
+        </div>
+        <div class="timer" id="timerDisplay">25:00</div>
+        <div class="timer-modes">
+          <button class="chip" data-min="15">15 min</button>
+          <button class="chip active" data-min="25">25 min</button>
+          <button class="chip" data-min="45">45 min</button>
+        </div>
+        <div class="timer-controls">
+          <button class="btn-primary btn-big" id="timerStartBtn">▶ Começar</button>
+          <button class="btn-ghost" id="timerResetBtn">↺ Reiniciar</button>
+        </div>
+        <p class="hint center">Regra do bloco: uma tarefa, sem pausas, telemóvel longe. Quando o timer tocar, podes parar <em>sem culpa</em>.</p>
+      </div>
+    </section>
+
+    <!-- ===== CHEER UP (DIAS DARK) ===== -->
+    <section id="view-cheer" class="view">
+      <header class="view-header">
+        <div><p class="greeting">Sem pressa. Sem culpa.</p><h2>Modo Cheer Up 🫂</h2></div>
+      </header>
+
+      <div class="card cheer-hero">
+        <h3>Hoje não é dia de render.<br>É dia de sobreviver com carinho.</h3>
+        <p>A tua casa não é um teste. A CasaClara fica aqui, sem julgamentos, até tu voltares. Enquanto isso, escolhe o que couber em ti hoje:</p>
+      </div>
+
+      <div class="cheer-grid">
+        <div class="card cheer-card">
+          <h4>🌬️ Só respira</h4>
+          <p class="hint">Exercício 4–4–6. Um ciclo de cada vez.</p>
+          <div class="breathe-wrap">
+            <div class="breathe-circle" id="breatheCircle"><span id="breatheText">Pronta/o?</span></div>
+          </div>
+          <button class="btn-primary" id="breatheBtn" onclick="toggleBreathe()">▶ Começar</button>
+        </div>
+
+        <div class="card cheer-card">
+          <h4>🫧 Cuidados mínimos</h4>
+          <p class="hint">Só se quiseres. Sem checklist obrigatório.</p>
+          <div class="care-list" id="careList"></div>
+        </div>
+      </div>
+
+      <div class="card cheer-minimum">
+        <h4>🌱 Modo sobrevivência</h4>
+        <p class="hint">Ativa para hoje: o dia só conta se fizeres <strong>1 coisa de 2 minutos</strong>. O resto é bónus. Amanhã recomeça normal, sem dívidas.</p>
+        <button class="btn-primary" id="survivalBtn" onclick="toggleSurvival()">Ativar para hoje</button>
+      </div>
+
+      <div class="card cheer-support">
+        <h4>💛 Precisas de companhia?</h4>
+        <p class="hint">Ligar a alguém conta como produtividade. Sempre.</p>
+        <a class="btn-ghost" href="tel:" id="callLink" onclick="setSupportNumber(event)">📞 Ligar a alguém de confiança</a>
+      </div>
+    </section>
+
+    <!-- ===== DECLUTTER ===== -->
+    <section id="view-declutter" class="view">
+      <header class="view-header">
+        <div><p class="greeting">Decisões binárias, zero drama</p><h2>Desapego</h2></div>
+      </header>
+      <div class="declutter-stats">
+        <div class="stat-card"><strong id="statKept">0</strong><small>Ficam ✓</small></div>
+        <div class="stat-card"><strong id="statGone">0</strong><small>Saem ⇢</small></div>
+        <div class="stat-card"><strong id="statBox">0</strong><small>Caixa de dúvida 📦</small></div>
+      </div>
+      <div class="card declutter-card">
+        <label class="field-label">O que estou a decidir agora:</label>
+        <input type="text" id="declutterItem" placeholder="Ex.: casaco azul de 2019…" autocomplete="off">
+        <p class="declutter-q">Uso isto? Adoro isto? Cabe na vida que quero ter?</p>
+        <div class="declutter-btns">
+          <button class="btn-dec btn-keep" onclick="decide('keep')">✓ FICA</button>
+          <button class="btn-dec btn-doubt" onclick="decide('box')">📦 DÚVIDA</button>
+          <button class="btn-dec btn-go" onclick="decide('go')">⇢ SAI</button>
+        </div>
+        <small class="hint">Regra da caixa de dúvida: se não abrires em 90 dias, sai sem revisão.</small>
+      </div>
+      <div class="section-head"><h3>Histórico recente</h3></div>
+      <div class="declutter-log" id="declutterLog"></div>
+    </section>
+
+  </main>
+
+  <!-- Mobile bottom nav -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-view="dashboard">◉<small>Hoje</small></button>
+    <button class="nav-btn" data-view="zones">▦<small>Zonas</small></button>
+    <button class="nav-btn" data-view="tasks">✓<small>Tarefas</small></button>
+    <button class="nav-btn" data-view="focus">◷<small>Foco</small></button>
+    <button class="nav-btn" data-view="declutter">⇄<small>Desapego</small></button>
+    <button class="nav-btn" data-view="cheer">🫂<small>Dias Dark</small></button>
+  </nav>
+
+  <div id="toast" class="toast"></div>
+  <canvas id="confetti"></canvas>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
