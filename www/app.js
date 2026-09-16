@@ -60,9 +60,14 @@ function loadState() {
     return raw ? Object.assign(defaultState(), JSON.parse(raw)) : defaultState();
   } catch { return defaultState(); }
 }
-function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+}
 
-function todayKey() { return new Date().toISOString().slice(0, 10); }
+function todayKey() {
+  const d = new Date(); // data local (não UTC) — o dia muda à meia-noite do utilizador
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 function weekNumber() {
   const d = new Date();
   const onejan = new Date(d.getFullYear(), 0, 1);
@@ -250,7 +255,7 @@ function checkStreak() {
   const key = todayKey();
   if (state.streak.last === key) return;
   const y = new Date(); y.setDate(y.getDate() - 1);
-  const yKey = y.toISOString().slice(0, 10);
+  const yKey = dateKey(y);
   state.streak.days = (state.streak.last === yKey) ? state.streak.days + 1 : 1;
   state.streak.last = key;
   saveState();

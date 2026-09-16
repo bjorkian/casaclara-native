@@ -12,12 +12,12 @@
   "type": "commonjs",
   "dependencies": {
     "@capacitor/android": "^8.5.2",
-    "@capacitor/cli": "^7.6.9",
     "@capacitor/core": "^8.5.2",
     "@capacitor/ios": "^8.5.2",
     "@capacitor/local-notifications": "^8.3.1"
   },
   "devDependencies": {
-    "@capacitor/assets": "^3.0.5"
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.2"
   }
 }
