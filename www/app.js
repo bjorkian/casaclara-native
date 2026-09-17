@@ -51,6 +51,7 @@ function defaultState() {
     careDone: {},
     survivalDays: {},
     supportNumber: '',
+    xp: 0,
   };
 }
 
@@ -86,34 +87,155 @@ function toast(msg) {
   toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
 }
 
-function confetti() {
+function confetti(x, y, big) {
   const canvas = document.getElementById('confetti');
   const ctx = canvas.getContext('2d');
   canvas.width = innerWidth; canvas.height = innerHeight;
-  const colors = ['#e07856', '#7fa88f', '#e3b657', '#7b9bb5'];
-  const parts = Array.from({ length: 90 }, () => ({
-    x: innerWidth / 2 + (Math.random() - .5) * 200,
-    y: innerHeight / 3,
-    vx: (Math.random() - .5) * 9,
-    vy: -Math.random() * 9 - 3,
-    size: 5 + Math.random() * 6,
-    color: colors[Math.floor(Math.random() * colors.length)],
-    life: 90,
-  }));
+  const colors = ['#d96f4c', '#eb9a72', '#7fa88f', '#e3b657', '#7b9bb5'];
+  const cx = (typeof x === 'number') ? x : innerWidth / 2;
+  const cy = (typeof y === 'number') ? y : innerHeight / 3;
+  const n = big ? 170 : 80;
+  const parts = Array.from({ length: n }, () => {
+    const ang = Math.random() * Math.PI * 2;
+    const speed = 3 + Math.random() * (big ? 9 : 6.5);
+    return {
+      x: cx + (Math.random() - .5) * 28,
+      y: cy + (Math.random() - .5) * 14,
+      vx: Math.cos(ang) * speed,
+      vy: Math.sin(ang) * speed - (big ? 4.2 : 3),
+      size: 4 + Math.random() * 6,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rot: Math.random() * Math.PI,
+      vr: (Math.random() - .5) * .3,
+      circle: Math.random() < .35,
+      life: big ? 115 : 80,
+    };
+  });
   (function tick() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     let alive = false;
     for (const p of parts) {
       if (p.life <= 0) continue;
       alive = true;
-      p.x += p.vx; p.y += p.vy; p.vy += 0.25; p.life--;
+      p.x += p.vx; p.y += p.vy; p.vy += 0.22; p.vx *= 0.99; p.rot += p.vr; p.life--;
       ctx.globalAlpha = Math.min(1, p.life / 30);
       ctx.fillStyle = p.color;
-      ctx.fillRect(p.x, p.y, p.size, p.size);
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      if (p.circle) { ctx.beginPath(); ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2); ctx.fill(); }
+      else ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * .62);
+      ctx.restore();
     }
     if (alive) requestAnimationFrame(tick);
     else ctx.clearRect(0, 0, canvas.width, canvas.height);
   })();
+}
+
+/* ---------------- SOM (sintetizado, sem ficheiros) ---------------- */
+let soundOn = true;
+try { soundOn = localStorage.getItem('casaclara_sound') !== 'off'; } catch {}
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch {}
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+  return audioCtx;
+}
+function tone(freq, delay, dur, vol, type) {
+  if (!soundOn) return;
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  try {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type || 'sine';
+    o.frequency.value = freq;
+    o.connect(g); g.connect(ctx.destination);
+    const t = ctx.currentTime + delay;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.start(t); o.stop(t + dur + 0.05);
+  } catch {}
+}
+function sndPop()   { tone(660, 0, .09, .10, 'triangle'); tone(880, .05, .12, .08, 'triangle'); }
+function sndTick()  { tone(540, 0, .07, .06); tone(720, .04, .08, .05); }
+function sndChime() { [523.25, 659.25, 783.99].forEach((f, i) => tone(f, i * .09, .3, .09)); }
+function sndLevel() { [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, i * .11, .42, .10)); }
+
+function toggleSound() {
+  soundOn = !soundOn;
+  try { localStorage.setItem('casaclara_sound', soundOn ? 'on' : 'off'); } catch {}
+  paintSoundToggle();
+  if (soundOn) sndPop();
+  toast(soundOn ? 'Sons ativos 🔊' : 'Sons desligados 🔇');
+}
+function paintSoundToggle() {
+  const icon = document.getElementById('soundIcon');
+  const label = document.getElementById('soundLabel');
+  if (icon) icon.textContent = soundOn ? '🔊' : '🔇';
+  if (label) label.textContent = soundOn ? 'Sons ativos' : 'Sons desligados';
+}
+
+/* ---------------- XP & NÍVEIS ---------------- */
+function xpForLevel(l) { return 50 * (l - 1) * l / 2; } // XP acumulado para atingir o nível l (L2=50, L3=150, L4=300…)
+function levelFromXP(xp) {
+  let l = 1;
+  while (xp >= xpForLevel(l + 1)) l++;
+  return l;
+}
+const LEVEL_TITLES = ['', 'Semente', 'Broto', 'Raiz', 'Folha', 'Flor', 'Árvore', 'Jardim', 'Bosque', 'Floresta', 'Ecossistema'];
+function levelTitle(l) { return LEVEL_TITLES[Math.min(l, LEVEL_TITLES.length - 1)]; }
+
+let lastPointer = { x: innerWidth / 2, y: innerHeight / 3 };
+window.addEventListener('pointerdown', e => { lastPointer = { x: e.clientX, y: e.clientY }; }, { passive: true });
+
+function awardXP(points) {
+  const before = levelFromXP(state.xp || 0);
+  state.xp = (state.xp || 0) + points;
+  const after = levelFromXP(state.xp);
+  saveState();
+  xpFloat(points);
+  paintXP();
+  if (after > before) setTimeout(() => levelUp(after), 380);
+}
+function xpFloat(points) {
+  const el = document.createElement('div');
+  el.className = 'xp-float';
+  el.textContent = '+' + points + ' XP';
+  el.style.left = lastPointer.x + 'px';
+  el.style.top = lastPointer.y + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 950);
+}
+function paintXP() {
+  const xp = state.xp || 0;
+  const lvl = levelFromXP(xp);
+  const base = xpForLevel(lvl), next = xpForLevel(lvl + 1);
+  const pct = Math.max(0, Math.min(100, Math.round((xp - base) / (next - base) * 100)));
+  const badge = document.getElementById('lvlBadge');
+  const num = document.getElementById('xpNum');
+  const fill = document.getElementById('xpFill');
+  if (badge) { badge.textContent = 'NÍVEL ' + lvl; badge.classList.toggle('max', lvl >= LEVEL_TITLES.length - 1); }
+  if (num) num.textContent = xp + ' XP';
+  if (fill) fill.style.width = pct + '%';
+}
+function levelUp(lvl) {
+  sndLevel();
+  confetti(innerWidth / 2, innerHeight / 2.4, true);
+  const ov = document.createElement('div');
+  ov.className = 'levelup';
+  ov.innerHTML = `
+    <div class="levelup-card">
+      <span class="levelup-emoji">🌟</span>
+      <h3>Nível ${lvl} — ${levelTitle(lvl)}</h3>
+      <p>Cada pequena ação conta. Estás a construir a tua casa e a tua calma.</p>
+      <button class="btn-primary" onclick="this.closest('.levelup').remove()">Continuar ✨</button>
+    </div>`;
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  document.body.appendChild(ov);
+  setTimeout(() => { if (ov.parentNode) ov.remove(); }, 9000);
 }
 
 /* ---------------- NAVEGAÇÃO ---------------- */
@@ -226,7 +348,7 @@ function toggleRoutineItem(rid, i) {
   const arr = state.routineDone[key];
   const idx = arr.indexOf(i);
   if (idx >= 0) arr.splice(idx, 1);
-  else { arr.push(i); toast('Feito ✓'); checkStreak(); }
+  else { arr.push(i); toast('Feito ✓'); sndTick(); awardXP(5); checkStreak(); }
   saveState(); renderDashboard();
 }
 
@@ -249,8 +371,11 @@ function dayProgress() {
 function updateRing() {
   const pct = dayProgress();
   const C = 2 * Math.PI * 34;
-  document.getElementById('ringFg').style.strokeDashoffset = C - (C * pct / 100);
+  const fg = document.getElementById('ringFg');
+  fg.style.strokeDashoffset = C - (C * pct / 100);
   document.getElementById('ringPct').textContent = pct + '%';
+  const ring = fg.closest('.score-ring');
+  if (ring) ring.classList.toggle('full', pct >= 100);
 }
 
 function checkStreak() {
@@ -366,7 +491,7 @@ function toggleTask(id) {
   if (!t) return;
   t.done = !t.done;
   t.doneDate = t.done ? todayKey() : null;
-  if (t.done) { confetti(); toast('Mais uma fora da lista! 🎉'); checkStreak(); }
+  if (t.done) { confetti(lastPointer.x, lastPointer.y); toast('Mais uma fora da lista! 🎉'); sndPop(); awardXP(15); checkStreak(); }
   saveState(); renderTasks(); renderDashboard();
 }
 function deleteTask(id) {
@@ -434,17 +559,7 @@ function paintTimer() {
   document.getElementById('timerDisplay').textContent = `${m}:${s}`;
 }
 function beep() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    [0, .25, .5].forEach(d => {
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.frequency.value = 880;
-      g.gain.setValueAtTime(.15, ctx.currentTime + d);
-      g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + d + .2);
-      o.start(ctx.currentTime + d); o.stop(ctx.currentTime + d + .22);
-    });
-  } catch {}
+  [0, .25, .5].forEach(d => tone(880, d, .2, .15));
 }
 
 /* ---------------- DESAPEGO ---------------- */
@@ -459,6 +574,8 @@ function decide(verdict) {
   saveState(); renderDeclutter();
   const msgs = { keep: 'Fica — usa e abraça ✓', box: 'Na caixa de dúvida. 90 dias de prazo 📦', go: 'Sai. A tua casa agradece ⇢' };
   toast(msgs[verdict]);
+  sndTick();
+  awardXP(verdict === 'go' ? 10 : verdict === 'box' ? 5 : 3);
   if (verdict === 'go') checkStreak();
 }
 
@@ -738,4 +855,6 @@ function stopBreathe() {
     scheduleDailyNotifications();
   }
   paintTimer();
+  paintXP();
+  paintSoundToggle();
 })();
