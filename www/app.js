@@ -64,9 +64,11 @@ function saveState() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
 }
 
-function todayKey() {
-  const d = new Date(); // data local (não UTC) — o dia muda à meia-noite do utilizador
+function dateKey(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function todayKey() {
+  return dateKey(new Date()); // data local (não UTC) — o dia muda à meia-noite do utilizador
 }
 function weekNumber() {
   const d = new Date();
